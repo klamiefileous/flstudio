@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP / Agent / Skill 底层概念讲解</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif;background:#0a0a0f;color:#e0e0e0;line-height:1.7}
+        .nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,15,.92);backdrop-filter:blur(12px);border-bottom:1px solid #1f2937;display:flex;justify-content:center;gap:8px;padding:12px 24px}
+        .nav a{text-decoration:none;padding:8px 20px;border-radius:8px;font-size:.9rem;font-weight:600;transition:all .3s}
+        .nav a.active{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white}
+        .nav a:not(.active){color:#94a3b8;border:1px solid #334155}
+        .nav a:not(.active):hover{color:#e2e8f0;border-color:#6366f1}
+        .hero{background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#312e81 100%);padding:100px 40px 80px;text-align:center;position:relative;overflow:hidden}
+        .hero::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle,rgba(139,92,246,.1) 0%,transparent 50%);animation:pulse 8s ease-in-out infinite}
+        @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+        .hero h1{font-size:2.6rem;background:linear-gradient(90deg,#a78bfa,#818cf8,#6366f1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:16px;position:relative}
+        .hero .subtitle{font-size:1.1rem;color:#94a3b8;position:relative;max-width:700px;margin:0 auto}
+        .container{max-width:900px;margin:0 auto;padding:40px 24px}
+        .section{margin-bottom:48px}
+        .section-title{font-size:1.8rem;color:#e2e8f0;margin:48px 0 24px;padding-bottom:12px;border-bottom:2px solid #1f2937}
+        .subsection-title{font-size:1.3rem;color:#c4b5fd;margin:32px 0 16px;padding:10px 18px;background:rgba(99,102,241,.06);border-left:4px solid #6366f1;border-radius:0 10px 10px 0}
+        .card{background:#111827;border:1px solid #1f2937;border-radius:12px;padding:24px;margin-bottom:16px;transition:border-color .3s}
+        .card:hover{border-color:#4f46e5}
+        .card h3{font-size:1.15rem;color:#e2e8f0;margin-bottom:12px}
+        .card p{color:#94a3b8;margin-bottom:10px}
+        .card ul{color:#94a3b8;padding-left:20px;margin-bottom:10px}
+        .card li{margin-bottom:6px}
+        .code-block{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:16px;margin:12px 0;overflow-x:auto;position:relative}
+        .code-block code{font-family:'JetBrains Mono','Fira Code','Consolas',monospace;font-size:.85rem;color:#c9d1d9;display:block;white-space:pre-wrap;word-break:break-all}
+        .code-block .lang-label{position:absolute;top:8px;right:12px;font-size:.7rem;color:#484f58;text-transform:uppercase}
+        .inline-code{background:rgba(99,102,241,.12);padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono','Fira Code',monospace;font-size:.85em;color:#a5b4fc}
+        .tip{background:rgba(251,191,36,.08);border-left:3px solid #fbbf24;padding:12px 16px;border-radius:0 8px 8px 0;margin:12px 0;font-size:.9rem}
+        .tip::before{content:'\1F4A1 '}
+        .warning{background:rgba(239,68,68,.08);border-left:3px solid #ef4444;padding:12px 16px;border-radius:0 8px 8px 0;margin:12px 0;font-size:.9rem}
+        .warning::before{content:'\26A0\FE0F '}
+        .success{background:rgba(34,197,94,.08);border-left:3px solid #22c55e;padding:12px 16px;border-radius:0 8px 8px 0;margin:12px 0;font-size:.9rem}
+        .success::before{content:'\2705 '}
+        .info{background:rgba(99,102,241,.08);border-left:3px solid #6366f1;padding:12px 16px;border-radius:0 8px 8px 0;margin:12px 0;font-size:.9rem}
+        .info::before{content:'\2139\FE0F '}
+        table{width:100%;border-collapse:collapse;margin:16px 0}
+        th,td{padding:10px 14px;text-align:left;border-bottom:1px solid #1f2937;font-size:.9rem}
+        th{background:rgba(99,102,241,.1);color:#a5b4fc;font-weight:600}
+        td{color:#cbd5e1}
+        tr:hover td{background:rgba(99,102,241,.04)}
+        .arch-diagram{background:#0d1117;border:1px solid #21262d;border-radius:12px;padding:24px;margin:16px 0;font-family:'JetBrains Mono','Fira Code','Consolas',monospace;font-size:.82rem;color:#8b949e;line-height:1.6;overflow-x:auto;white-space:pre}
+        .footer{text-align:center;padding:40px;color:#475569;border-top:1px solid #1f2937;margin-top:40px}
+        .toc{background:linear-gradient(135deg,#1e1b4b,#1e293b);border:1px solid #334155;border-radius:16px;padding:28px 32px;margin-bottom:40px}
+        .toc h2{font-size:1.3rem;color:#a5b4fc;margin-bottom:16px}
+        .toc ol{padding-left:24px;color:#94a3b8}
+        .toc li{margin-bottom:8px}
+        .toc a{color:#a5b4fc;text-decoration:none;transition:color .2s}
+        .toc a:hover{color:#c4b5fd;text-decoration:underline}
+        @media(max-width:768px){.hero h1{font-size:2rem}.hero{padding:80px 20px 48px}.nav{gap:4px;padding:8px 12px}.nav a{padding:6px 12px;font-size:.8rem}}
+    </style>
+</head>
+<body>
+<nav class="nav">
+    <a href="index.html">&#x1F3B5; &#x5B89;&#x88C5;&#x6559;&#x7A0B;</a>
+    <a href="concepts.html" class="active">&#x1F9E0; &#x6982;&#x5FF5;&#x8BB2;&#x89E3;</a>
+</nav>
+<div class="hero">
+    <h1>MCP / Agent / Skill &#x5E95;&#x5C42;&#x6982;&#x5FF5;&#x8BB2;&#x89E3;</h1>
+    <p class="subtitle">&#x6DF1;&#x5165;&#x7406;&#x89E3; MCP &#x534F;&#x8BAE;&#x3001;Agent &#x67B6;&#x6784;&#x3001;Skill &#x4E0E; CLI &#x5DE5;&#x5177;&#x7684;&#x533A;&#x522B;&#x4E0E;&#x8054;&#x7CFB;&#xFF0C;<br>&#x8BA9;&#x4F60;&#x5BF9; AI &#x5DE5;&#x5177;&#x94FE;&#x7684;&#x8FD0;&#x4F5C;&#x539F;&#x7406;&#x4E86;&#x7136;&#x4E8E;&#x80F8;&#x3002;</p>
+</div>
+<div class="container">
+
+    <div class="toc">
+        <h2>&#x1F4D1; &#x76EE;&#x5F55;</h2>
+        <ol>
+            <li><a href="#s1">&#x4E09;&#x79CD;&#x80FD;&#x529B;&#x7C7B;&#x578B;&#x6982;&#x89C8;</a></li>
+            <li><a href="#s2">MCP &#x5728; IDE &#x91CC;&#x7684;&#x6574;&#x4F53;&#x67B6;&#x6784;</a></li>
+            <li><a href="#s3">MCP Server &#x914D;&#x7F6E;&#x8BE6;&#x89E3;</a></li>
+            <li><a href="#s4">IDE &#x5982;&#x4F55;&#x628A; MCP &#x4EA4;&#x7ED9; Agent</a></li>
+            <li><a href="#s5">MCP &#x914D;&#x7F6E;&#x5E38;&#x89C1;&#x5199;&#x6CD5;</a></li>
+            <li><a href="#s6">Skill vs MCP &#x5BF9;&#x6BD4;</a></li>
+            <li><a href="#s7">&#x5176;&#x4ED6; IDE &#x7684; MCP &#x652F;&#x6301;</a></li>
+            <li><a href="#s8">&#x672C;&#x673A;&#x5B9E;&#x64CD;&#x68C0;&#x67E5;&#x6E05;&#x5355;</a></li>
+            <li><a href="#s9">&#x4E09;&#x79CD;&#x80FD;&#x529B;&#x600E;&#x4E48;&#x9009;</a></li>
+            <li><a href="#s10">&#x6545;&#x969C;&#x6392;&#x67E5;&#x901F;&#x67E5;</a></li>
+        </ol>
+    </div>
+
+    <div class="section" id="s1">
+        <h2 class="section-title">1. &#x4E09;&#x79CD;&#x80FD;&#x529B;&#x7C7B;&#x578B;&#x6982;&#x89C8;</h2>
+        <div class="card">
+            <p>&#x5728; AI &#x5DE5;&#x5177;&#x94FE;&#x4E2D;&#xFF0C;&#x6709;&#x4E09;&#x79CD;&#x4E0D;&#x540C;&#x7684;&#x80FD;&#x529B;&#x63A5;&#x5165;&#x65B9;&#x5F0F;&#xFF1A;</p>
+            <table>
+                <tr><th>&#x7C7B;&#x578B;</th><th>&#x662F;&#x4EC0;&#x4E48;</th><th>&#x4F8B;&#x5B50;</th></tr>
+                <tr><td><strong>MCP Server</strong></td><td>&#x72EC;&#x7ACB;&#x8FDB;&#x7A0B;&#xFF0C;&#x901A;&#x8FC7;&#x6807;&#x51C6;&#x534F;&#x8BAE;&#x66B4;&#x9732; tools / resources&#xFF0C;IDE &#x5E2E; Agent &#x53BB;&#x8C03;</td><td>MCP_DOCKER&#x3001;fl-studio-mcp</td></tr>
+                <tr><td><strong>Agent Skill</strong></td><td>&#x4E00;&#x4EFD; SKILL.md &#x5DE5;&#x4F5C;&#x6D41;&#x8BF4;&#x660E;&#xFF0C;Agent &#x8BFB;&#x6587;&#x6863;&#x540E;&#x5728;&#x7EC8;&#x7AEF;/&#x7F16;&#x8F91;&#x5668;&#x91CC;&#x6267;&#x884C;</td><td>website-to-hyperframes</td></tr>
+                <tr><td><strong>CLI &#x5DE5;&#x5177;</strong></td><td>&#x666E;&#x901A;&#x547D;&#x4EE4;&#x884C;&#xFF0C;Agent &#x7528; Shell &#x8DD1;</td><td>npx hyperframes capture&#x3001;uvicorn</td></tr>
+            </table>
+        </div>
+        <div class="info">Skill &#x548C; CLI &#x4E0D;&#x8D70; MCP&#xFF0C;&#x800C;&#x662F; Agent &#x8BFB;&#x8BF4;&#x660E;&#x540E;&#x5728;&#x7EC8;&#x7AEF;&#x6267;&#x884C;&#x547D;&#x4EE4;&#x3002;</div>
+    </div>
+
+    <div class="section" id="s2">
+        <h2 class="section-title">2. MCP &#x5728; IDE &#x91CC;&#x7684;&#x6574;&#x4F53;&#x67B6;&#x6784;</h2>
+        <div class="card">
+            <h3>&#x5B8C;&#x6574;&#x8C03;&#x7528;&#x94FE;&#x8DEF;</h3>
+            <div class="arch-diagram">+-----------------------------------------------------------+
+|  IDE&#xFF08;&#x4F60;&#x5199; prompt / Agent &#x6A21;&#x5F0F;&#xFF09;                   |
++-----------------------------------------------------------+
+                            |
+                            v
++-----------------------------------------------------------+
+|  Agent&#xFF08;AI&#xFF09;                                             |
+|  - &#x770B;&#x5230;&#x300C;&#x53EF;&#x7528; MCP &#x5DE5;&#x5177;&#x5217;&#x8868;&#x300D;                      |
+|  - &#x6309; JSON Schema &#x6784;&#x9020;&#x53C2;&#x6570;                          |
+|  - &#x8C03;&#x7528; CallMcpTool(server, toolName, arguments)        |
++-----------------------------------------------------------+
+                            |
+                  MCP &#x534F;&#x8BAE;&#xFF08;&#x901A;&#x5E38; stdio JSON-RPC&#xFF09;
+                            v
++-----------------------------------------------------------+
+|  MCP Server &#x5B50;&#x8FDB;&#x7A0B;&#xFF08;&#x7531; IDE &#x6839;&#x636E; mcp.json &#x542F;&#x52A8;&#xFF09;  |
+|  &#x4F8B;&#xFF1A;docker mcp gateway run                             |
++-----------------------------------------------------------+
+                            |
+                            v
++-----------------------------------------------------------+
+|  &#x5916;&#x90E8;&#x80FD;&#x529B;&#xFF1A;Docker&#x3001;&#x6570;&#x636E;&#x5E93;&#x3001;&#x6D4F;&#x89C8;&#x5668;&#x3001;API&#x2026;          |
++-----------------------------------------------------------+</div>
+            <p>Agent <strong>&#x4E0D;&#x4F1A;&#x76F4;&#x63A5;&#x6267;&#x884C;</strong> Docker &#x6216;&#x8BBF;&#x95EE;&#x6570;&#x636E;&#x5E93;&#xFF0C;&#x800C;&#x662F;&#xFF1A;<br>
+            IDE &#x542F;&#x52A8; MCP Server &#x2192; Server &#x6CE8;&#x518C; tools &#x2192; Agent &#x6309;&#x540D;&#x8C03;&#x7528; tool &#x2192; &#x7ED3;&#x679C;&#x8FD4;&#x56DE;&#x5BF9;&#x8BDD;&#x3002;</p>
+        </div>
+    </div>
+
+    <div class="section" id="s3">
+        <h2 class="section-title">3. MCP Server &#x914D;&#x7F6E;&#x8BE6;&#x89E3;</h2>
+
+        <div class="subsection-title">3.1 &#x5168;&#x5C40;&#x914D;&#x7F6E;&#xFF08;&#x4EE5; Cursor &#x4E3A;&#x4F8B;&#xFF09;</div>
+        <div class="card">
+            <p>Cursor &#x8BFB;&#x53D6;&#x5168;&#x5C40;&#x914D;&#x7F6E;&#x6587;&#x4EF6;&#xFF1A;</p>
+            <div class="code-block"><span class="lang-label">&#x8DEF;&#x5F84;</span><code>C:\Users\&lt;USERNAME&gt;\.cursor\mcp.json</code></div>
+            <p>&#x793A;&#x4F8B;&#x5185;&#x5BB9;&#xFF1A;</p>
+            <div class="code-block"><span class="lang-label">JSON</span><code>{
+  "mcpServers": {
+    "MCP_DOCKER": {
+      "command": "docker",
+      "args": ["mcp", "gateway", "run"],
+      "env": {
+        "LOCALAPPDATA": "C:\\Users\\ADMIN\\AppData\\Local",
+        "ProgramData": "C:\\ProgramData",
+        "ProgramFiles": "C:\\Program Files"
+      }
+    }
+  }
+}</code></div>
+            <p><strong>&#x542B;&#x4E49;&#xFF1A;</strong>Cursor &#x6253;&#x5F00;/&#x9700;&#x8981; MCP &#x65F6;&#xFF0C;&#x6267;&#x884C; <span class="inline-code">docker mcp gateway run</span>&#xFF0C;&#x8BE5; Docker MCP Gateway &#x518D;&#x6302;&#x8F7D;&#x4E00;&#x6279; Docker &#x76F8;&#x5173; MCP &#x5DE5;&#x5177;&#x3002;</p>
+        </div>
+
+        <div class="subsection-title">3.2 &#x5728; UI &#x91CC;&#x7BA1;&#x7406;</div>
+        <div class="card">
+            <ul>
+                <li>Cursor Settings &#x2192; MCP&#xFF1A;&#x67E5;&#x770B;&#x6BCF;&#x4E2A; server &#x7684; Connected / Error &#x72B6;&#x6001;</li>
+                <li>&#x542F;&#x7528;/&#x7981;&#x7528;&#x3001;&#x91CD;&#x8FDE;&#x3001;&#x770B;&#x65E5;&#x5FD7;</li>
+                <li>&#x6709;&#x65F6;&#x53EF;&#x901A;&#x8FC7;&#x56FE;&#x5F62;&#x754C;&#x9762;&#x6DFB;&#x52A0; server&#xFF08;&#x7B49;&#x4EF7;&#x4E8E;&#x5199; mcp.json&#xFF09;</li>
+            </ul>
+            <div class="warning">&#x5982;&#x679C; MCP Server &#x72B6;&#x6001;&#x663E;&#x793A; Error&#xFF0C;&#x8BF4;&#x660E; Agent &#x76EE;&#x524D;&#x8C03;&#x4E0D;&#x4E86;&#x8BE5;&#x670D;&#x52A1;&#xFF0C;&#x9700;&#x8981;&#x5148;&#x4FEE;&#x590D;&#x95EE;&#x9898;&#x3002;</div>
+        </div>
+
+        <div class="subsection-title">3.3 &#x9879;&#x76EE;&#x7EA7;&#x914D;&#x7F6E;&#xFF08;&#x53EF;&#x9009;&#xFF09;</div>
+        <div class="card">
+            <p>&#x6709;&#x7684;&#x9879;&#x76EE;&#x4F1A;&#x5728;&#x4ED3;&#x5E93;&#x91CC;&#x653E;&#xFF1A;</p>
+            <div class="code-block"><code>.cursor/mcp.json   &#x2014; &#x4EC5;&#x5F53;&#x524D;&#x9879;&#x76EE;&#x989D;&#x5916; MCP</code></div>
+            <div class="tip">&#x4F18;&#x5148;&#x7EA7;&#x4EE5; IDE &#x5B98;&#x65B9;&#x6587;&#x6863;&#x4E3A;&#x51C6;&#x3002;</div>
+        </div>
+    </div>
+
+    <div class="section" id="s4">
+        <h2 class="section-title">4. IDE &#x5982;&#x4F55;&#x628A; MCP &#x4EA4;&#x7ED9; Agent</h2>
+
+        <div class="subsection-title">4.1 &#x542F;&#x52A8; Server</div>
+        <div class="card">
+            <ol style="color:#94a3b8;padding-left:20px">
+                <li>&#x8BFB;&#x53D6; <span class="inline-code">mcp.json</span> &#x914D;&#x7F6E;</li>
+                <li>&#x5BF9;&#x6BCF;&#x4E2A; server &#x8D77;&#x5B50;&#x8FDB;&#x7A0B;&#xFF08;command + args + env&#xFF09;</li>
+                <li>&#x63E1;&#x624B;&#xFF08;MCP initialize&#xFF09;</li>
+                <li>&#x62C9;&#x53D6; tools&#x3001;resources &#x5217;&#x8868;</li>
+            </ol>
+        </div>
+
+        <div class="subsection-title">4.2 &#x5DE5;&#x5177;&#x63CF;&#x8FF0;&#x7B26;&#xFF08;Schema&#xFF09;</div>
+        <div class="card">
+            <p>IDE &#x4F1A;&#x5728;&#x5DE5;&#x4F5C;&#x533A;&#x751F;&#x6210;/&#x540C;&#x6B65;&#x63CF;&#x8FF0;&#xFF1A;</p>
+            <div class="code-block"><code>.cursor/projects/&lt;&#x9879;&#x76EE;&gt;/mcps/&lt;server&gt;/tools/&lt;tool-name&gt;.json</code></div>
+            <p><strong>Agent &#x89C4;&#x5219;&#xFF1A;</strong>&#x8C03;&#x7528;&#x524D;&#x5FC5;&#x987B;&#x5148;&#x8BFB; schema&#xFF0C;&#x77E5;&#x9053;&#x53C2;&#x6570;&#x540D;&#x3001;&#x7C7B;&#x578B;&#x3001;&#x662F;&#x5426;&#x5FC5;&#x586B;&#x3002;</p>
+            <div class="warning">&#x5982;&#x679C; tools &#x76EE;&#x5F55;&#x4E0B;&#x6CA1;&#x6709; .json &#x6587;&#x4EF6;&#xFF0C;&#x8BF4;&#x660E;&#x670D;&#x52A1;&#x672A;&#x6210;&#x529F;&#x6CE8;&#x518C;&#x5DE5;&#x5177;&#x3002;</div>
+        </div>
+
+        <div class="subsection-title">4.3 Agent &#x8C03;&#x7528;&#x6D41;&#x7A0B;</div>
+        <div class="card">
+            <div class="arch-diagram">&#x7528;&#x6237;&#xFF1A;"&#x7528; Docker &#x67E5;&#x4E00;&#x4E0B;&#x5BB9;&#x5668;"
+    |
+    v
+Agent &#x5224;&#x65AD;&#x9700;&#x8981; MCP
+    |
+    v
+&#x8BFB; mcps/.../tools/xxx.json&#xFF08;&#x4E86;&#x89E3;&#x53C2;&#x6570;&#xFF09;
+    |
+    v
+CallMcpTool({ server: "MCP_DOCKER", toolName: "...", arguments: {...} })
+    |
+    v
+IDE &#x8F6C;&#x53D1;&#x7ED9; MCP Server
+    |
+    v
+Server &#x6267;&#x884C;&#xFF0C;JSON &#x7ED3;&#x679C;&#x56DE;&#x5230;&#x5BF9;&#x8BDD;</div>
+            <div class="tip">&#x82E5; server &#x62A5;&#x9519;&#xFF0C;&#x8C03;&#x7528;&#x5931;&#x8D25;&#xFF0C;Agent &#x5E94;&#x6539;&#x7528;&#x624B;&#x52A8;&#x547D;&#x4EE4;&#x6216;&#x63D0;&#x793A;&#x4F60;&#x53BB; Settings &#x4FEE; MCP&#x3002;</div>
+        </div>
+
+        <div class="subsection-title">4.4 Resources&#xFF08;&#x53EA;&#x8BFB;&#x6570;&#x636E;&#xFF09;</div>
+        <div class="card">
+            <p>&#x90E8;&#x5206; MCP &#x8FD8;&#x63D0;&#x4F9B; <strong>resources</strong>&#xFF08;&#x6587;&#x4EF6;&#x3001;&#x6587;&#x6863;&#x7247;&#x6BB5;&#x7B49;&#xFF09;&#xFF0C;&#x901A;&#x8FC7; <span class="inline-code">FetchMcpResource</span> &#x8BFB;&#x53D6;&#xFF0C;&#x540C;&#x6837;&#x8981;&#x5148;&#x770B; resource &#x63CF;&#x8FF0;&#x7B26;&#x3002;</p>
+        </div>
+    </div>
+
+    <div class="section" id="s5">
+        <h2 class="section-title">5. MCP &#x914D;&#x7F6E;&#x5E38;&#x89C1;&#x5199;&#x6CD5;</h2>
+        <div class="card">
+            <h3>&#x672C;&#x5730;&#x547D;&#x4EE4;&#x884C;&#x65B9;&#x5F0F;</h3>
+            <div class="code-block"><span class="lang-label">JSON</span><code>{
+  "mcpServers": {
+    "example": {
+      "command": "npx",
+      "args": ["-y", "@some/mcp-server"],
+      "env": {
+        "API_KEY": "xxx"
+      }
+    }
+  }
+}</code></div>
+        </div>
+        <div class="card">
+            <h3>&#x8FDC;&#x7A0B; SSE/HTTP Server</h3>
+            <div class="code-block"><span class="lang-label">JSON</span><code>{
+  "mcpServers": {
+    "remote": {
+      "url": "http://localhost:8080/sse"
+    }
+  }
+}</code></div>
+            <div class="tip">&#x6539; mcp.json &#x540E;&#x901A;&#x5E38;&#x8981;&#x91CD;&#x542F; IDE &#x6216;&#x5728; MCP &#x9762;&#x677F;&#x91CC; Reconnect&#x3002;</div>
+        </div>
+    </div>
+
+    <div class="section" id="s6">
+        <h2 class="section-title">6. Skill vs MCP &#x5BF9;&#x6BD4;</h2>
+        <div class="card">
+            <table>
+                <tr><th>&#x7EF4;&#x5EA6;</th><th>MCP</th><th>Skill</th></tr>
+                <tr><td><strong>&#x89E6;&#x53D1;</strong></td><td>Agent &#x8C03;&#x5177;&#x540D; tool</td><td>&#x7528;&#x6237; @skill&#x3001;&#x89C4;&#x5219;&#x5339;&#x914D;&#x3001;&#x6216; Agent &#x8BFB; SKILL.md</td></tr>
+                <tr><td><strong>&#x6267;&#x884C;&#x4F53;</strong></td><td>MCP Server &#x8FDB;&#x7A0B;</td><td>Agent &#x81EA;&#x5DF1;&#xFF1A;&#x8BFB;&#x6587;&#x4EF6;&#x3001;&#x8DD1;&#x7EC8;&#x7AEF;&#x3001;&#x5199;&#x4EE3;&#x7801;</td></tr>
+                <tr><td><strong>&#x914D;&#x7F6E;</strong></td><td>mcp.json</td><td>~/.cursor/skills/&#x3001;.cursor/skills/&#x3001;~/.agents/skills/</td></tr>
+                <tr><td><strong>&#x534F;&#x8BAE;</strong></td><td>MCP JSON-RPC</td><td>&#x65E0;&#x534F;&#x8BAE;&#xFF0C;&#x7EAF; Markdown &#x6307;&#x4EE4;</td></tr>
+            </table>
+        </div>
+        <div class="card">
+            <h3>Skill &#x5B9E;&#x4F8B;&#xFF1A;website-to-hyperframes</h3>
+            <p>&#x8DEF;&#x5F84;&#xFF1A;<span class="inline-code">~/.agents/skills/website-to-hyperframes/SKILL.md</span></p>
+            <p>&#x5F53;&#x4F60;&#x53D1; <span class="inline-code">/website-to-hyperframes</span> &#x65F6;&#xFF0C;IDE &#x628A; skill &#x5185;&#x5BB9;&#x6CE8;&#x5165;&#x5BF9;&#x8BDD;&#xFF1B;Agent &#x518D;&#x6267;&#x884C;&#xFF1A;</p>
+            <div class="code-block"><code>npx hyperframes capture &lt;URL&gt; -o capture
+npx hyperframes lint / validate / snapshot
+npm run dev    # Studio &#x9884;&#x89C8;
+npm run render # MP4</code></div>
+            <div class="info">&#x8FD9;&#x662F;<strong>&#x7EC8;&#x7AEF; + &#x6587;&#x4EF6;</strong>&#xFF0C;&#x4E0D;&#x662F; MCP&#x3002;</div>
+        </div>
+    </div>
+
+    <div class="section" id="s7">
+        <h2 class="section-title">7. &#x5176;&#x4ED6; IDE &#x7684; MCP &#x652F;&#x6301;</h2>
+        <div class="card">
+            <table>
+                <tr><th>IDE / &#x4EA7;&#x54C1;</th><th>MCP &#x652F;&#x6301;</th></tr>
+                <tr><td>Cursor</td><td>&#x539F;&#x751F;&#xFF0C;~/.cursor/mcp.json&#xFF0C;Agent &#x96C6;&#x6210;&#x6700;&#x597D;</td></tr>
+                <tr><td>VS Code + Copilot</td><td>&#x9010;&#x6B65;&#x652F;&#x6301; MCP&#xFF08;&#x6269;&#x5C55;/Insiders&#xFF09;&#xFF0C;&#x914D;&#x7F6E;&#x7C7B;&#x4F3C;</td></tr>
+                <tr><td>Claude Desktop</td><td>claude_desktop_config.json &#x91CC; mcpServers</td></tr>
+                <tr><td>Windsurf / Cline &#x7B49;</td><td>&#x5404;&#x6709; MCP &#x914D;&#x7F6E;&#x8DEF;&#x5F84;&#xFF0C;&#x6982;&#x5FF5;&#x76F8;&#x540C;</td></tr>
+            </table>
+            <div class="success"><strong>&#x5171;&#x540C;&#x70B9;&#xFF1A;</strong>&#x72EC;&#x7ACB; MCP &#x8FDB;&#x7A0B; + JSON &#x914D;&#x7F6E; + AI &#x5BA2;&#x6237;&#x7AEF;&#x8C03; tools&#x3002;<br>Skill / &#x81EA;&#x5B9A;&#x4E49;&#x811A;&#x672C;&#x4E0D;&#x81EA;&#x52A8;&#x53D8;&#x6210; MCP&#xFF0C;&#x9664;&#x975E;&#x5355;&#x72EC;&#x5199; MCP Server &#x5305;&#x88C5;&#x3002;</div>
+        </div>
+    </div>
+
+    <div class="section" id="s8">
+        <h2 class="section-title">8. &#x672C;&#x673A;&#x5B9E;&#x64CD;&#x68C0;&#x67E5;&#x6E05;&#x5355;</h2>
+
+        <div class="subsection-title">8.1 &#x68C0;&#x67E5; MCP &#x662F;&#x5426;&#x6B63;&#x5E38;</div>
+        <div class="card">
+            <ul>
+                <li>IDE Settings &#x2192; MCP&#xFF1A;&#x67E5;&#x770B;&#x5404; Server &#x662F;&#x5426; Connected</li>
+                <li>&#x82E5; Error&#xFF1A;&#x68C0;&#x67E5;&#x5BF9;&#x5E94;&#x670D;&#x52A1;&#x662F;&#x5426;&#x8FD0;&#x884C;&#xFF08;&#x5982; Docker Desktop&#xFF09;</li>
+                <li>&#x7EC8;&#x7AEF;&#x80FD;&#x5426;&#x624B;&#x52A8;&#x6267;&#x884C;&#x542F;&#x52A8;&#x547D;&#x4EE4;</li>
+                <li>&#x4FEE;&#x590D;&#x540E; Reconnect</li>
+            </ul>
+        </div>
+
+        <div class="subsection-title">8.2 &#x786E;&#x8BA4; Agent &#x80FD;&#x770B;&#x5230;&#x54EA;&#x4E9B; MCP &#x5DE5;&#x5177;</div>
+        <div class="card">
+            <ul>
+                <li>MCP &#x6B63;&#x5E38;&#x65F6;&#xFF0C;<span class="inline-code">mcps/&lt;server&gt;/tools/</span> &#x4E0B;&#x4F1A;&#x51FA;&#x73B0;&#x5404; tool &#x7684; .json</li>
+                <li>&#x5BF9;&#x8BDD;&#x91CC;&#x53EF;&#x95EE;&#xFF1A;&#x201C;&#x5217;&#x51FA;&#x5F53;&#x524D;&#x53EF;&#x7528;&#x7684; MCP &#x5DE5;&#x5177;&#x201D;</li>
+            </ul>
+        </div>
+
+        <div class="subsection-title">8.3 &#x4F7F;&#x7528; Skill&#xFF08;&#x4E0E; MCP &#x65E0;&#x5173;&#xFF09;</div>
+        <div class="card">
+            <ul>
+                <li>&#x6280;&#x80FD;&#x5728; <span class="inline-code">~/.agents/skills/</span> &#x6216; <span class="inline-code">~/.cursor/skills/</span></li>
+                <li>&#x5BF9;&#x8BDD;&#x91CC; @skill-name &#x6216;&#x8BF4;&#x660E;&#x9700;&#x6C42;</li>
+                <li>Agent &#x6A21;&#x5F0F;&#x4E0B;&#x6267;&#x884C;&#x7EC8;&#x7AEF;&#x547D;&#x4EE4;</li>
+            </ul>
+            <div class="warning">&#x4E0D;&#x8981;&#x628A; Skill &#x76EE;&#x5F55;&#x5F53; MCP &#x52A0;&#x8FDB; mcp.json&#xFF01;Skill &#x6CA1;&#x6709; MCP server &#x5165;&#x53E3;&#xFF0C;&#x5199;&#x8FDB;&#x53BB;&#x4E5F;&#x4E0D;&#x4F1A;&#x53D8;&#x6210;&#x53EF;&#x8C03;&#x7528;&#x7684; MCP tool&#x3002;</div>
+        </div>
+    </div>
+
+    <div class="section" id="s9">
+        <h2 class="section-title">9. &#x4E09;&#x79CD;&#x80FD;&#x529B;&#x600E;&#x4E48;&#x9009;</h2>
+        <div class="card">
+            <h3>&#x9700;&#x6C42;&#xFF1A;&#x628A;&#x7F51;&#x7AD9;&#x505A;&#x6210;&#x89C6;&#x9891;</h3>
+            <div class="warning"><strong>&#x2716; &#x9519;&#x8BEF;&#x7406;&#x89E3;&#xFF1A;</strong>&#x5728; mcp.json &#x91CC;&#x914D;&#x7F6E; website-to-hyperframes</div>
+            <div class="success"><strong>&#x2714; &#x6B63;&#x786E;&#x65B9;&#x5F0F;&#xFF1A;</strong>&#x4F7F;&#x7528; Skill + npx hyperframes CLI</div>
+        </div>
+        <div class="card">
+            <h3>&#x9700;&#x6C42;&#xFF1A;Agent &#x64CD;&#x4F5C; Docker &#x5BB9;&#x5668;/&#x955C;&#x50CF;</h3>
+            <div class="success"><strong>&#x2714; MCP&#xFF1A;</strong>&#x914D;&#x7F6E; MCP_DOCKER&#xFF0C;&#x4FEE;&#x597D;&#x540E; Agent &#x8C03; Docker MCP tools</div>
+        </div>
+        <div class="card">
+            <h3>&#x9700;&#x6C42;&#xFF1A;&#x8DD1; FastAPI &#x7EBF;&#x7D22; API</h3>
+            <div class="success"><strong>&#x2714; CLI/Shell&#xFF1A;</strong><span class="inline-code">uvicorn app.main:app</span>&#xFF08;&#x4E0E; MCP/Skill &#x90FD;&#x65E0;&#x5173;&#xFF09;</div>
+        </div>
+    </div>
+
+    <div class="section" id="s10">
+        <h2 class="section-title">10. &#x6545;&#x969C;&#x6392;&#x67E5;&#x901F;&#x67E5;</h2>
+        <div class="card">
+            <table>
+                <tr><th>&#x73B0;&#x8C61;</th><th>&#x53EF;&#x80FD;&#x539F;&#x56E0;</th><th>&#x5904;&#x7406;</th></tr>
+                <tr><td>The MCP server errored</td><td>Docker &#x672A;&#x542F;&#x52A8;&#x3001;gateway &#x5931;&#x8D25;</td><td>&#x5F00; Docker Desktop&#xFF0C;&#x91CD;&#x8FDE; MCP</td></tr>
+                <tr><td>Agent &#x8BF4;&#x6CA1;&#x6709;&#x67D0; MCP tool</td><td>Server &#x672A;&#x8FDE;&#x63A5; / &#x65E0; tools &#x76EE;&#x5F55;</td><td>Settings &#x2192; MCP &#x770B;&#x72B6;&#x6001;</td></tr>
+                <tr><td>/skill-name &#x65E0;&#x53CD;&#x5E94;</td><td>Ask &#x6A21;&#x5F0F; / &#x672A;&#x6302; skill</td><td>&#x5207; Agent &#x6A21;&#x5F0F;&#xFF0C;@ skill</td></tr>
+                <tr><td>&#x8C03; MCP &#x53C2;&#x6570;&#x62A5;&#x9519;</td><td>&#x672A;&#x8BFB; tool schema</td><td>&#x5148;&#x8BFB; mcps/.../tools/*.json</td></tr>
+                <tr><td>Skill &#x548C; MCP &#x6DF7;&#x6DC6;</td><td>&#x6982;&#x5FF5;&#x6DF7;&#x7528;</td><td>Skill=&#x6587;&#x6863;&#x5DE5;&#x4F5C;&#x6D41;&#xFF1B;MCP=&#x72EC;&#x7ACB;&#x670D;&#x52A1;</td></tr>
+            </table>
+        </div>
+    </div>
+
+    <div class="card" style="background:linear-gradient(135deg,#1e1b4b,#1e293b);border-color:#4f46e5;padding:32px;text-align:center">
+        <h3 style="font-size:1.3rem;margin-bottom:16px">&#x1F4A1; &#x603B;&#x7ED3;&#x4E00;&#x53E5;&#x8BDD;</h3>
+        <p style="font-size:1.05rem;color:#c4b5fd;line-height:1.8">
+            IDE &#x901A;&#x8FC7; <span class="inline-code">mcp.json</span> &#x542F;&#x52A8; MCP Server &#x5B50;&#x8FDB;&#x7A0B;&#xFF0C;&#x628A; tools &#x7684; JSON Schema &#x66B4;&#x9732;&#x7ED9; Agent&#xFF1B;<br>
+            Agent &#x7528; <span class="inline-code">CallMcpTool</span> &#x95F4;&#x63A5;&#x8C03;&#x7528;&#x3002;<br><br>
+            Skill &#x548C; CLI &#x4E0D;&#x8D70; MCP&#xFF0C;&#x800C;&#x662F; Agent &#x8BFB;&#x8BF4;&#x660E;&#x540E;&#x5728;&#x7EC8;&#x7AEF;&#x6267;&#x884C;&#x547D;&#x4EE4;&#x3002;
+        </p>
+    </div>
+</div>
+<div class="footer">
+    <p>MCP / Agent / Skill &#x5E95;&#x5C42;&#x6982;&#x5FF5;&#x8BB2;&#x89E3; &middot; &#x57FA;&#x4E8E;&#x89C6;&#x9891;&#x6559;&#x7A0B;&#x6574;&#x7406;</p>
+</div>
+</body>
+</html>
