@@ -6,13 +6,14 @@
     <title>MCP / Agent / Skill 底层概念讲解</title>
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif;background:#0a0a0f;color:#e0e0e0;line-height:1.7}
-        .nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,15,.92);backdrop-filter:blur(12px);border-bottom:1px solid #1f2937;display:flex;justify-content:center;gap:8px;padding:12px 24px}
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif;background:#050510;color:#e0e0e0;line-height:1.7}
+        #starfield{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;pointer-events:none}
+        .nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(5,5,16,.85);backdrop-filter:blur(12px);border-bottom:1px solid rgba(99,102,241,.15);display:flex;justify-content:center;gap:8px;padding:12px 24px}
         .nav a{text-decoration:none;padding:8px 20px;border-radius:8px;font-size:.9rem;font-weight:600;transition:all .3s}
         .nav a.active{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white}
         .nav a:not(.active){color:#94a3b8;border:1px solid #334155}
         .nav a:not(.active):hover{color:#e2e8f0;border-color:#6366f1}
-        .hero{background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#312e81 100%);padding:100px 40px 80px;text-align:center;position:relative;overflow:hidden}
+        .hero{background:rgba(5,5,16,.45);padding:100px 40px 80px;text-align:center;position:relative;overflow:hidden}
         .hero::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle,rgba(139,92,246,.1) 0%,transparent 50%);animation:pulse 8s ease-in-out infinite}
         @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
         .hero h1{font-size:2.6rem;background:linear-gradient(90deg,#a78bfa,#818cf8,#6366f1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:16px;position:relative}
@@ -21,13 +22,13 @@
         .section{margin-bottom:48px}
         .section-title{font-size:1.8rem;color:#e2e8f0;margin:48px 0 24px;padding-bottom:12px;border-bottom:2px solid #1f2937}
         .subsection-title{font-size:1.3rem;color:#c4b5fd;margin:32px 0 16px;padding:10px 18px;background:rgba(99,102,241,.06);border-left:4px solid #6366f1;border-radius:0 10px 10px 0}
-        .card{background:#111827;border:1px solid #1f2937;border-radius:12px;padding:24px;margin-bottom:16px;transition:border-color .3s}
+        .card{background:rgba(10,10,30,.75);border:1px solid rgba(99,102,241,.12);border-radius:12px;padding:24px;margin-bottom:16px;transition:border-color .3s;backdrop-filter:blur(4px)}
         .card:hover{border-color:#4f46e5}
         .card h3{font-size:1.15rem;color:#e2e8f0;margin-bottom:12px}
         .card p{color:#94a3b8;margin-bottom:10px}
         .card ul{color:#94a3b8;padding-left:20px;margin-bottom:10px}
         .card li{margin-bottom:6px}
-        .code-block{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:16px;margin:12px 0;overflow-x:auto;position:relative}
+        .code-block{background:rgba(5,5,20,.8);border:1px solid rgba(99,102,241,.1);border-radius:8px;padding:16px;margin:12px 0;overflow-x:auto;position:relative}
         .code-block code{font-family:'JetBrains Mono','Fira Code','Consolas',monospace;font-size:.85rem;color:#c9d1d9;display:block;white-space:pre-wrap;word-break:break-all}
         .code-block .lang-label{position:absolute;top:8px;right:12px;font-size:.7rem;color:#484f58;text-transform:uppercase}
         .inline-code{background:rgba(99,102,241,.12);padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono','Fira Code',monospace;font-size:.85em;color:#a5b4fc}
@@ -44,18 +45,26 @@
         th{background:rgba(99,102,241,.1);color:#a5b4fc;font-weight:600}
         td{color:#cbd5e1}
         tr:hover td{background:rgba(99,102,241,.04)}
-        .arch-diagram{background:#0d1117;border:1px solid #21262d;border-radius:12px;padding:24px;margin:16px 0;font-family:'JetBrains Mono','Fira Code','Consolas',monospace;font-size:.82rem;color:#8b949e;line-height:1.6;overflow-x:auto;white-space:pre}
-        .footer{text-align:center;padding:40px;color:#475569;border-top:1px solid #1f2937;margin-top:40px}
-        .toc{background:linear-gradient(135deg,#1e1b4b,#1e293b);border:1px solid #334155;border-radius:16px;padding:28px 32px;margin-bottom:40px}
+        .arch-diagram{background:rgba(5,5,20,.8);border:1px solid rgba(99,102,241,.1);border-radius:12px;padding:24px;margin:16px 0;font-family:'JetBrains Mono','Fira Code','Consolas',monospace;font-size:.82rem;color:#8b949e;line-height:1.6;overflow-x:auto;white-space:pre}
+        .footer{text-align:center;padding:40px;color:#475569;border-top:1px solid rgba(99,102,241,.1);margin-top:40px}
+        .toc{background:rgba(15,15,40,.7);border:1px solid rgba(99,102,241,.2);border-radius:16px;padding:28px 32px;margin-bottom:40px;backdrop-filter:blur(6px)}
         .toc h2{font-size:1.3rem;color:#a5b4fc;margin-bottom:16px}
+        .music-player{position:relative;margin:40px auto 0;max-width:500px;background:rgba(15,15,40,.7);border:1px solid rgba(99,102,241,.2);border-radius:16px;padding:20px 24px;backdrop-filter:blur(8px);display:flex;align-items:center;gap:16px}
+        .music-player .play-btn{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:white;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .2s,box-shadow .2s}
+        .music-player .play-btn:hover{transform:scale(1.1);box-shadow:0 0 24px rgba(99,102,241,.4)}
+        .music-player .song-info{flex:1;min-width:0}
+        .music-player .song-title{font-size:.95rem;color:#e2e8f0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .music-player .song-artist{font-size:.8rem;color:#64748b;margin-top:2px}
+        .music-player .yt-frame{display:none}
         .toc ol{padding-left:24px;color:#94a3b8}
         .toc li{margin-bottom:8px}
         .toc a{color:#a5b4fc;text-decoration:none;transition:color .2s}
         .toc a:hover{color:#c4b5fd;text-decoration:underline}
-        @media(max-width:768px){.hero h1{font-size:2rem}.hero{padding:80px 20px 48px}.nav{gap:4px;padding:8px 12px}.nav a{padding:6px 12px;font-size:.8rem}}
+        @media(max-width:768px){.hero h1{font-size:2rem}.hero{padding:80px 20px 48px}.nav{gap:4px;padding:8px 12px}.nav a{padding:6px 12px;font-size:.8rem}.music-player{margin:24px 12px 0;padding:14px 16px}}
     </style>
 </head>
 <body>
+<canvas id="starfield"></canvas>
 <nav class="nav">
     <a href="index.html">&#x1F3B5; &#x5B89;&#x88C5;&#x6559;&#x7A0B;</a>
     <a href="concepts.html" class="active">&#x1F9E0; &#x6982;&#x5FF5;&#x8BB2;&#x89E3;</a>
@@ -347,7 +356,7 @@ npm run render # MP4</code></div>
         </div>
     </div>
 
-    <div class="card" style="background:linear-gradient(135deg,#1e1b4b,#1e293b);border-color:#4f46e5;padding:32px;text-align:center">
+    <div class="card" style="background:rgba(15,15,40,.7);border-color:rgba(99,102,241,.3);padding:32px;text-align:center">
         <h3 style="font-size:1.3rem;margin-bottom:16px">&#x1F4A1; &#x603B;&#x7ED3;&#x4E00;&#x53E5;&#x8BDD;</h3>
         <p style="font-size:1.05rem;color:#c4b5fd;line-height:1.8">
             IDE &#x901A;&#x8FC7; <span class="inline-code">mcp.json</span> &#x542F;&#x52A8; MCP Server &#x5B50;&#x8FDB;&#x7A0B;&#xFF0C;&#x628A; tools &#x7684; JSON Schema &#x66B4;&#x9732;&#x7ED9; Agent&#xFF1B;<br>
@@ -356,8 +365,81 @@ npm run render # MP4</code></div>
         </p>
     </div>
 </div>
+
+<div class="music-player">
+    <button class="play-btn" id="playBtn" onclick="togglePlay()">&#9654;</button>
+    <div class="song-info">
+        <div class="song-title">A Promise From Distant Days</div>
+        <div class="song-artist">Silent Owl (Sergey Eybog) — Everlasting Summer OST</div>
+    </div>
+    <div class="yt-frame"><div id="ytPlayer"></div></div>
+</div>
 <div class="footer">
     <p>MCP / Agent / Skill &#x5E95;&#x5C42;&#x6982;&#x5FF5;&#x8BB2;&#x89E3; &middot; &#x57FA;&#x4E8E;&#x89C6;&#x9891;&#x6559;&#x7A0B;&#x6574;&#x7406;</p>
 </div>
+
+<script>
+(function(){
+    const canvas = document.getElementById('starfield');
+    const ctx = canvas.getContext('2d');
+    let W, H, stars = [], meteors = [];
+    function resize(){ W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+    window.addEventListener('resize', resize); resize();
+    for(let i = 0; i < 260; i++){
+        stars.push({ x: Math.random()*W, y: Math.random()*H, r: Math.random()*1.8+0.3,
+            baseAlpha: Math.random()*0.6+0.3, alpha: 0, speed: Math.random()*0.008+0.003,
+            phase: Math.random()*Math.PI*2 });
+    }
+    function spawnMeteor(){
+        meteors.push({ x: Math.random()*W*0.8+W*0.1, y: Math.random()*H*0.3,
+            len: Math.random()*80+60, speed: Math.random()*6+5,
+            angle: Math.PI/4+(Math.random()-0.5)*0.3, alpha: 1, life: 0,
+            maxLife: Math.random()*40+30 });
+    }
+    setInterval(function(){ if(Math.random()<0.7) spawnMeteor(); }, 3500);
+    let t = 0;
+    function draw(){
+        ctx.clearRect(0,0,W,H); t += 0.016;
+        for(let s of stars){
+            s.alpha = s.baseAlpha + Math.sin(t*s.speed*60+s.phase)*0.3;
+            if(s.alpha<0) s.alpha=0; if(s.alpha>1) s.alpha=1;
+            ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+            ctx.fillStyle='rgba(220,230,255,'+s.alpha.toFixed(2)+')'; ctx.fill();
+        }
+        for(let i=meteors.length-1;i>=0;i--){
+            let m=meteors[i]; m.life++;
+            m.x+=Math.cos(m.angle)*m.speed; m.y+=Math.sin(m.angle)*m.speed;
+            m.alpha=1-m.life/m.maxLife;
+            if(m.alpha<=0){meteors.splice(i,1);continue;}
+            let tX=m.x-Math.cos(m.angle)*m.len, tY=m.y-Math.sin(m.angle)*m.len;
+            let g=ctx.createLinearGradient(tX,tY,m.x,m.y);
+            g.addColorStop(0,'rgba(180,200,255,0)');
+            g.addColorStop(1,'rgba(220,230,255,'+m.alpha.toFixed(2)+')');
+            ctx.beginPath();ctx.moveTo(tX,tY);ctx.lineTo(m.x,m.y);
+            ctx.strokeStyle=g;ctx.lineWidth=1.5;ctx.stroke();
+            ctx.beginPath();ctx.arc(m.x,m.y,2,0,Math.PI*2);
+            ctx.fillStyle='rgba(255,255,255,'+m.alpha.toFixed(2)+')';ctx.fill();
+        }
+        requestAnimationFrame(draw);
+    }
+    draw();
+    window.addEventListener('resize',function(){for(let s of stars){s.x=Math.random()*W;s.y=Math.random()*H;}});
+})();
+var ytPlayerObj=null,isPlaying=false;
+function onYouTubeIframeAPIReady(){
+    ytPlayerObj=new YT.Player('ytPlayer',{height:'0',width:'0',videoId:'Xc5o7DyI0-4',
+        playerVars:{'autoplay':0,'loop':1,'playlist':'Xc5o7DyI0-4'},
+        events:{'onReady':function(){},'onStateChange':function(e){
+            if(e.data===YT.PlayerState.ENDED){isPlaying=false;document.getElementById('playBtn').innerHTML='&#9654;';}
+        }}});
+}
+function togglePlay(){
+    var btn=document.getElementById('playBtn');if(!ytPlayerObj)return;
+    if(isPlaying){ytPlayerObj.pauseVideo();btn.innerHTML='&#9654;';isPlaying=false;}
+    else{ytPlayerObj.playVideo();btn.innerHTML='&#10074;&#10074;';isPlaying=true;}
+}
+(function(){var tag=document.createElement('script');tag.src='https://www.youtube.com/iframe_api';
+var first=document.getElementsByTagName('script')[0];first.parentNode.insertBefore(tag,first);})();
+</script>
 </body>
 </html>

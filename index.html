@@ -6,13 +6,14 @@
     <title>Created by Melydic: FL Studio MCP 连接指南</title>
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif;background:#0a0a0f;color:#e0e0e0;line-height:1.7}
-        .nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,15,.92);backdrop-filter:blur(12px);border-bottom:1px solid #1f2937;display:flex;justify-content:center;gap:8px;padding:12px 24px}
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif;background:#050510;color:#e0e0e0;line-height:1.7}
+        #starfield{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;pointer-events:none}
+        .nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(5,5,16,.85);backdrop-filter:blur(12px);border-bottom:1px solid rgba(99,102,241,.15);display:flex;justify-content:center;gap:8px;padding:12px 24px}
         .nav a{text-decoration:none;padding:8px 20px;border-radius:8px;font-size:.9rem;font-weight:600;transition:all .3s}
         .nav a.active{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white}
         .nav a:not(.active){color:#94a3b8;border:1px solid #334155}
         .nav a:not(.active):hover{color:#e2e8f0;border-color:#6366f1}
-        .hero{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);padding:100px 40px 80px;text-align:center;position:relative;overflow:hidden}
+        .hero{background:rgba(5,5,16,.45);padding:100px 40px 80px;text-align:center;position:relative;overflow:hidden}
         .hero::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle,rgba(99,102,241,.1) 0%,transparent 50%);animation:pulse 8s ease-in-out infinite}
         @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
         .hero h1{font-size:2.8rem;background:linear-gradient(90deg,#667eea,#764ba2,#f093fb);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:16px;position:relative}
@@ -20,7 +21,7 @@
         .hero .badges{margin-top:24px;display:flex;justify-content:center;gap:12px;flex-wrap:wrap;position:relative}
         .badge{background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);padding:6px 16px;border-radius:20px;font-size:.85rem;color:#a5b4fc}
         .container{max-width:900px;margin:0 auto;padding:40px 24px}
-        .overview{background:linear-gradient(135deg,#1e1b4b,#1e293b);border:1px solid #334155;border-radius:16px;padding:32px;margin-bottom:48px}
+        .overview{background:rgba(15,15,40,.7);border:1px solid rgba(99,102,241,.2);border-radius:16px;padding:32px;margin-bottom:48px;backdrop-filter:blur(6px)}
         .overview h2{font-size:1.5rem;color:#a5b4fc;margin-bottom:16px}
         .overview p{color:#94a3b8}
         .tools-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:20px}
@@ -28,16 +29,16 @@
         .tool-card .icon{font-size:2rem;margin-bottom:8px}
         .tool-card .name{font-weight:600;color:#e2e8f0}
         .tool-card .desc{font-size:.8rem;color:#64748b;margin-top:4px}
-        .phase-title{font-size:1.4rem;color:#c4b5fd;margin:48px 0 20px;padding:12px 20px;background:rgba(99,102,241,.08);border-left:4px solid #6366f1;border-radius:0 10px 10px 0}
+        .phase-title{font-size:1.4rem;color:#c4b5fd;margin:48px 0 20px;padding:12px 20px;background:rgba(99,102,241,.1);border-left:4px solid #6366f1;border-radius:0 10px 10px 0;backdrop-filter:blur(4px)}
         .step{position:relative;margin-bottom:32px;padding-left:60px}
         .step::before{content:'';position:absolute;left:24px;top:48px;bottom:-32px;width:2px;background:linear-gradient(to bottom,#6366f1,#334155)}
         .step:last-child::before{display:none}
         .step-number{position:absolute;left:8px;top:4px;width:36px;height:36px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;color:white;box-shadow:0 0 20px rgba(99,102,241,.3)}
-        .step-content{background:#111827;border:1px solid #1f2937;border-radius:12px;padding:24px;transition:border-color .3s}
+        .step-content{background:rgba(10,10,30,.75);border:1px solid rgba(99,102,241,.12);border-radius:12px;padding:24px;transition:border-color .3s;backdrop-filter:blur(4px)}
         .step-content:hover{border-color:#4f46e5}
         .step-content h3{font-size:1.2rem;color:#e2e8f0;margin-bottom:12px}
         .step-content p{color:#94a3b8;margin-bottom:12px}
-        .code-block{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:16px;margin:12px 0;overflow-x:auto;position:relative}
+        .code-block{background:rgba(5,5,20,.8);border:1px solid rgba(99,102,241,.1);border-radius:8px;padding:16px;margin:12px 0;overflow-x:auto;position:relative}
         .code-block code{font-family:'JetBrains Mono','Fira Code','Consolas',monospace;font-size:.85rem;color:#c9d1d9;display:block;white-space:pre-wrap;word-break:break-all}
         .code-block .lang-label{position:absolute;top:8px;right:12px;font-size:.7rem;color:#484f58;text-transform:uppercase}
         .tip{background:rgba(251,191,36,.08);border-left:3px solid #fbbf24;padding:12px 16px;border-radius:0 8px 8px 0;margin:12px 0;font-size:.9rem}
@@ -46,23 +47,31 @@
         .warning::before{content:'\26A0\FE0F '}
         .success{background:rgba(34,197,94,.08);border-left:3px solid #22c55e;padding:12px 16px;border-radius:0 8px 8px 0;margin:12px 0;font-size:.9rem}
         .success::before{content:'\2705 '}
-        .flow-diagram{background:#111827;border:1px solid #1f2937;border-radius:12px;padding:32px;margin:40px 0;text-align:center}
+        .flow-diagram{background:rgba(10,10,30,.75);border:1px solid rgba(99,102,241,.12);border-radius:12px;padding:32px;margin:40px 0;text-align:center;backdrop-filter:blur(4px)}
         .flow-diagram h3{color:#a5b4fc;margin-bottom:24px;font-size:1.3rem}
         .flow-items{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}
         .flow-item{background:linear-gradient(135deg,#1e1b4b,#1e293b);border:1px solid #334155;padding:12px 20px;border-radius:10px;font-weight:600;color:#c4b5fd}
         .flow-arrow{color:#6366f1;font-size:1.5rem}
         .section-title{font-size:1.8rem;color:#e2e8f0;margin:48px 0 24px;padding-bottom:12px;border-bottom:2px solid #1f2937}
-        .footer{text-align:center;padding:40px;color:#475569;border-top:1px solid #1f2937;margin-top:40px}
+        .footer{text-align:center;padding:40px;color:#475569;border-top:1px solid rgba(99,102,241,.1);margin-top:40px}
+        .music-player{position:relative;margin:40px auto 0;max-width:500px;background:rgba(15,15,40,.7);border:1px solid rgba(99,102,241,.2);border-radius:16px;padding:20px 24px;backdrop-filter:blur(8px);display:flex;align-items:center;gap:16px}
+        .music-player .play-btn{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:white;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .2s,box-shadow .2s}
+        .music-player .play-btn:hover{transform:scale(1.1);box-shadow:0 0 24px rgba(99,102,241,.4)}
+        .music-player .song-info{flex:1;min-width:0}
+        .music-player .song-title{font-size:.95rem;color:#e2e8f0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .music-player .song-artist{font-size:.8rem;color:#64748b;margin-top:2px}
+        .music-player .yt-frame{display:none}
         .inline-code{background:rgba(99,102,241,.12);padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono','Fira Code',monospace;font-size:.85em;color:#a5b4fc}
         table{width:100%;border-collapse:collapse;margin:16px 0}
         th,td{padding:10px 14px;text-align:left;border-bottom:1px solid #1f2937;font-size:.9rem}
         th{background:rgba(99,102,241,.1);color:#a5b4fc;font-weight:600}
         td{color:#cbd5e1}
         tr:hover td{background:rgba(99,102,241,.04)}
-        @media(max-width:768px){.hero h1{font-size:2rem}.hero{padding:80px 20px 48px}.step{padding-left:48px}.step-number{left:4px;width:32px;height:32px;font-size:.8rem}.step::before{left:19px;top:40px}.flow-items{flex-direction:column}.nav{gap:4px;padding:8px 12px}.nav a{padding:6px 12px;font-size:.8rem}}
+        @media(max-width:768px){.hero h1{font-size:2rem}.hero{padding:80px 20px 48px}.step{padding-left:48px}.step-number{left:4px;width:32px;height:32px;font-size:.8rem}.step::before{left:19px;top:40px}.flow-items{flex-direction:column}.nav{gap:4px;padding:8px 12px}.nav a{padding:6px 12px;font-size:.8rem}.music-player{margin:24px 12px 0;padding:14px 16px}}
     </style>
 </head>
 <body>
+<canvas id="starfield"></canvas>
 <nav class="nav">
     <a href="index.html" class="active">&#x1F3B5; &#x5B89;&#x88C5;&#x6559;&#x7A0B;</a>
     <a href="concepts.html">&#x1F9E0; &#x6982;&#x5FF5;&#x8BB2;&#x89E3;</a>
@@ -268,10 +277,155 @@ claude
         <p><span class="inline-code">--directory</span> &#x53C2;&#x6570;&#x9700;&#x6539;&#x6210;&#x4F60;&#x81EA;&#x5DF1;&#x514B;&#x9686; FL Studio MCP &#x9879;&#x76EE;&#x7684;&#x5B8C;&#x6574;&#x6587;&#x4EF6;&#x5939;&#x8DEF;&#x5F84;&#x3002;&#x4F8B;&#x5982;&#xFF1A;<span class="inline-code">D:/fl-studio-mcp</span></p>
     </div>
 </div>
+
+<div class="music-player">
+    <button class="play-btn" id="playBtn" onclick="togglePlay()">&#9654;</button>
+    <div class="song-info">
+        <div class="song-title">A Promise From Distant Days</div>
+        <div class="song-artist">Silent Owl (Sergey Eybog) — Everlasting Summer OST</div>
+    </div>
+    <div class="yt-frame"><div id="ytPlayer"></div></div>
+</div>
 <div class="footer">
     <p>&#x57FA;&#x4E8E;&#x89C6;&#x9891;&#x6559;&#x7A0B;&#x6574;&#x7406;&#x7684;&#x6307;&#x4EE4;&#x5F52;&#x7EB3;&#x603B;&#x7ED3; &middot; FL Studio MCP &#x8FDE;&#x63A5;&#x6307;&#x5357;</p>
     <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
 <span>总访问：<span id="busuanzi_value_site_pv"></span> 次</span>
 </div>
+
+<script>
+// === Starfield particle animation ===
+(function(){
+    const canvas = document.getElementById('starfield');
+    const ctx = canvas.getContext('2d');
+    let W, H, stars = [], meteors = [];
+
+    function resize(){
+        W = canvas.width = window.innerWidth;
+        H = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    for(let i = 0; i < 260; i++){
+        stars.push({
+            x: Math.random() * W,
+            y: Math.random() * H,
+            r: Math.random() * 1.8 + 0.3,
+            baseAlpha: Math.random() * 0.6 + 0.3,
+            alpha: 0,
+            speed: Math.random() * 0.008 + 0.003,
+            phase: Math.random() * Math.PI * 2
+        });
+    }
+
+    function spawnMeteor(){
+        meteors.push({
+            x: Math.random() * W * 0.8 + W * 0.1,
+            y: Math.random() * H * 0.3,
+            len: Math.random() * 80 + 60,
+            speed: Math.random() * 6 + 5,
+            angle: Math.PI / 4 + (Math.random() - 0.5) * 0.3,
+            alpha: 1,
+            life: 0,
+            maxLife: Math.random() * 40 + 30
+        });
+    }
+    setInterval(function(){ if(Math.random() < 0.7) spawnMeteor(); }, 3500);
+
+    let t = 0;
+    function draw(){
+        ctx.clearRect(0, 0, W, H);
+        t += 0.016;
+
+        for(let s of stars){
+            s.alpha = s.baseAlpha + Math.sin(t * s.speed * 60 + s.phase) * 0.3;
+            if(s.alpha < 0) s.alpha = 0;
+            if(s.alpha > 1) s.alpha = 1;
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(220,230,255,' + s.alpha.toFixed(2) + ')';
+            ctx.fill();
+        }
+
+        for(let i = meteors.length - 1; i >= 0; i--){
+            let m = meteors[i];
+            m.life++;
+            let dx = Math.cos(m.angle) * m.speed;
+            let dy = Math.sin(m.angle) * m.speed;
+            m.x += dx;
+            m.y += dy;
+            m.alpha = 1 - m.life / m.maxLife;
+            if(m.alpha <= 0){ meteors.splice(i, 1); continue; }
+
+            let tailX = m.x - Math.cos(m.angle) * m.len;
+            let tailY = m.y - Math.sin(m.angle) * m.len;
+            let grad = ctx.createLinearGradient(tailX, tailY, m.x, m.y);
+            grad.addColorStop(0, 'rgba(180,200,255,0)');
+            grad.addColorStop(1, 'rgba(220,230,255,' + m.alpha.toFixed(2) + ')');
+            ctx.beginPath();
+            ctx.moveTo(tailX, tailY);
+            ctx.lineTo(m.x, m.y);
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(m.x, m.y, 2, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255,255,255,' + m.alpha.toFixed(2) + ')';
+            ctx.fill();
+        }
+
+        requestAnimationFrame(draw);
+    }
+    draw();
+
+    window.addEventListener('resize', function(){
+        for(let s of stars){ s.x = Math.random() * W; s.y = Math.random() * H; }
+    });
+})();
+
+// === YouTube BGM player ===
+var ytPlayerObj = null;
+var isPlaying = false;
+
+function onYouTubeIframeAPIReady(){
+    ytPlayerObj = new YT.Player('ytPlayer', {
+        height: '0',
+        width: '0',
+        videoId: 'Xc5o7DyI0-4',
+        playerVars: { 'autoplay': 0, 'loop': 1, 'playlist': 'Xc5o7DyI0-4' },
+        events: {
+            'onReady': function(){},
+            'onStateChange': function(e){
+                if(e.data === YT.PlayerState.ENDED){
+                    isPlaying = false;
+                    document.getElementById('playBtn').innerHTML = '&#9654;';
+                }
+            }
+        }
+    });
+}
+
+function togglePlay(){
+    var btn = document.getElementById('playBtn');
+    if(!ytPlayerObj) return;
+    if(isPlaying){
+        ytPlayerObj.pauseVideo();
+        btn.innerHTML = '&#9654;';
+        isPlaying = false;
+    } else {
+        ytPlayerObj.playVideo();
+        btn.innerHTML = '&#10074;&#10074;';
+        isPlaying = true;
+    }
+}
+
+(function(){
+    var tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    var first = document.getElementsByTagName('script')[0];
+    first.parentNode.insertBefore(tag, first);
+})();
+</script>
 </body>
 </html>
