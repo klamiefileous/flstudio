@@ -68,9 +68,9 @@ function initNebulae(){
         nebulae.push({
             x: Math.random() * W,
             y: Math.random() * H,
-            r: Math.random() * 300 + 200,
+            r: Math.random() * 350 + 250,
             c: colors[i % colors.length],
-            alpha: 0.012 + Math.random() * 0.015,
+            alpha: 0.04 + Math.random() * 0.03,
             dx: (Math.random() - 0.5) * 0.15,
             dy: (Math.random() - 0.5) * 0.1,
             pulse: Math.random() * Math.PI * 2
