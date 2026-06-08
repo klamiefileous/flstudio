@@ -16,6 +16,7 @@ var VOLUME        = CFG.volume    || 0.6;
 
 /* ── 1. 注入 CSS ── */
 var css = [
+'body{background:#050510}',
 '#sf-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;pointer-events:none}',
 '.sf-player{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;align-items:center;gap:12px;background:rgba(15,15,40,.75);border:1px solid rgba(99,102,241,.25);border-radius:14px;padding:14px 20px;backdrop-filter:blur(10px);box-shadow:0 4px 24px rgba(0,0,0,.4);max-width:340px;transition:opacity .3s}',
 '.sf-player:hover{border-color:rgba(99,102,241,.5)}',
@@ -48,36 +49,68 @@ document.body.appendChild(player);
 /* ── 3. 星空动画 ── */
 var ctx = canvas.getContext('2d');
 var W, H;
-function resize(){ W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+function resize(){ W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; initNebulae(); }
 window.addEventListener('resize', resize); resize();
 
-// 星星
+// 星云色块 — 淡紫/淡蓝雾化背景
+var nebulae = [];
+function initNebulae(){
+    nebulae = [];
+    var colors = [
+        [180, 160, 230],  // 淡紫
+        [150, 170, 230],  // 淡蓝紫
+        [130, 180, 220],  // 淡蓝
+        [170, 150, 210],  // 柔紫
+        [140, 190, 230],  // 天蓝
+        [190, 160, 220]   // 淡紫粉
+    ];
+    for(var i = 0; i < 6; i++){
+        nebulae.push({
+            x: Math.random() * W,
+            y: Math.random() * H,
+            r: Math.random() * 300 + 200,
+            c: colors[i % colors.length],
+            alpha: 0.012 + Math.random() * 0.015,
+            dx: (Math.random() - 0.5) * 0.15,
+            dy: (Math.random() - 0.5) * 0.1,
+            pulse: Math.random() * Math.PI * 2
+        });
+    }
+}
+initNebulae();
+
+// 星星 — 带闪烁
 var stars = [];
 for(var i = 0; i < STAR_COUNT; i++){
     stars.push({
         x: Math.random()*W, y: Math.random()*H,
-        r: Math.random()*1.8+0.3,
-        base: Math.random()*0.6+0.3, a: 0,
-        spd: Math.random()*0.008+0.003,
-        ph: Math.random()*Math.PI*2,
-        hue: 220 + Math.random()*40           // 淡蓝到淡紫色调
+        r: Math.random()*1.6+0.3,
+        base: Math.random()*0.5+0.3, a: 0,
+        // 闪烁：双频叠加 + 随机脉冲
+        spd1: Math.random()*0.03+0.01,
+        spd2: Math.random()*0.07+0.03,
+        ph1: Math.random()*Math.PI*2,
+        ph2: Math.random()*Math.PI*2,
+        sparkleTimer: Math.random()*200,
+        hue: 210 + Math.random()*60,     // 蓝到紫
+        sat: 40 + Math.random()*30        // 饱和度
     });
 }
 
-// 流星
+// 流星 — 减速版
 var meteors = [];
-var particles = []; // 流星尾迹碎片
+var particles = [];
 
 function spawnMeteor(){
-    var big = Math.random() < 0.25;            // 25% 概率出现大火球
+    var big = Math.random() < 0.2;
     meteors.push({
         x: Math.random()*W*0.9 + W*0.05,
         y: -20 - Math.random()*H*0.15,
         len: (big ? 140 : 70) + Math.random()*60,
-        speed: (big ? 7 : 5) + Math.random()*4,
+        speed: (big ? 2.5 : 1.8) + Math.random()*1.5,   // 大幅减速
         angle: Math.PI/4 + (Math.random()-0.5)*0.4,
         a: 1, life: 0,
-        maxLife: (big ? 60 : 40) + Math.random()*30,
+        maxLife: (big ? 120 : 80) + Math.random()*60,     // 寿命更长
         width: big ? 2.5 : 1.2,
         headR: big ? 3.5 : 2,
         hue: big ? 200+Math.random()*30 : 220+Math.random()*40,
@@ -85,31 +118,70 @@ function spawnMeteor(){
     });
 }
 
-// 初始就生成一批流星
 for(var m = 0; m < MAX_METEORS; m++) spawnMeteor();
-
-// 持续补充流星，保持场上约 MAX_METEORS 个
 setInterval(function(){
     while(meteors.length < MAX_METEORS) spawnMeteor();
-}, 800);
+}, 1200);
 
 var t = 0;
 function draw(){
     ctx.clearRect(0,0,W,H);
     t += 0.016;
 
-    // 绘制星星
-    for(var i=0; i<stars.length; i++){
-        var s = stars[i];
-        s.a = s.base + Math.sin(t*s.spd*60+s.ph)*0.3;
-        if(s.a<0)s.a=0; if(s.a>1)s.a=1;
-        ctx.beginPath();
-        ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
-        ctx.fillStyle = 'hsla('+s.hue+',60%,85%,'+s.a.toFixed(2)+')';
-        ctx.fill();
+    // ── 绘制梦幻星云背景 ──
+    for(var i=0; i<nebulae.length; i++){
+        var n = nebulae[i];
+        n.x += n.dx; n.y += n.dy;
+        n.pulse += 0.005;
+        // 边界反弹
+        if(n.x < -n.r) n.x = W + n.r;
+        if(n.x > W + n.r) n.x = -n.r;
+        if(n.y < -n.r) n.y = H + n.r;
+        if(n.y > H + n.r) n.y = -n.r;
+
+        var a = n.alpha * (0.7 + Math.sin(n.pulse)*0.3);
+        var g = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r);
+        g.addColorStop(0, 'rgba('+n.c[0]+','+n.c[1]+','+n.c[2]+','+a.toFixed(3)+')');
+        g.addColorStop(0.5, 'rgba('+n.c[0]+','+n.c[1]+','+n.c[2]+','+(a*0.4).toFixed(3)+')');
+        g.addColorStop(1, 'rgba('+n.c[0]+','+n.c[1]+','+n.c[2]+',0)');
+        ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, Math.PI*2);
+        ctx.fillStyle = g; ctx.fill();
     }
 
-    // 绘制流星
+    // ── 绘制星星（带闪烁） ──
+    for(var i=0; i<stars.length; i++){
+        var s = stars[i];
+        // 双频闪烁
+        var flicker = Math.sin(t*s.spd1*60+s.ph1)*0.25 + Math.sin(t*s.spd2*60+s.ph2)*0.15;
+        s.a = s.base + flicker;
+
+        // 随机脉冲闪烁（偶尔突然亮一下）
+        s.sparkleTimer--;
+        if(s.sparkleTimer <= 0){
+            s.a = Math.min(1, s.a + 0.5);
+            s.sparkleTimer = 80 + Math.random()*300;
+        }
+
+        if(s.a<0.05)s.a=0.05; if(s.a>1)s.a=1;
+
+        // 画星星光点
+        ctx.beginPath();
+        ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+        ctx.fillStyle = 'hsla('+s.hue+','+s.sat+'%,85%,'+s.a.toFixed(2)+')';
+        ctx.fill();
+
+        // 较亮的星画十字光芒
+        if(s.a > 0.6 && s.r > 0.8){
+            var glow = s.a * 0.3;
+            var len = s.r * 3 * s.a;
+            ctx.strokeStyle = 'hsla('+s.hue+','+s.sat+'%,90%,'+glow.toFixed(2)+')';
+            ctx.lineWidth = 0.5;
+            ctx.beginPath(); ctx.moveTo(s.x-len,s.y); ctx.lineTo(s.x+len,s.y); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(s.x,s.y-len); ctx.lineTo(s.x,s.y+len); ctx.stroke();
+        }
+    }
+
+    // ── 绘制流星 ──
     for(var i=meteors.length-1;i>=0;i--){
         var m=meteors[i];
         m.life++;
@@ -122,7 +194,7 @@ function draw(){
         var tx=m.x-Math.cos(m.angle)*m.len, ty=m.y-Math.sin(m.angle)*m.len;
         var g=ctx.createLinearGradient(tx,ty,m.x,m.y);
         g.addColorStop(0,'hsla('+m.hue+',60%,80%,0)');
-        g.addColorStop(0.6,'hsla('+m.hue+',50%,85%,'+(m.a*0.4).toFixed(2)+')');
+        g.addColorStop(0.6,'hsla('+m.hue+',50%,85%,'+(m.a*0.35).toFixed(2)+')');
         g.addColorStop(1,'hsla('+m.hue+',40%,95%,'+m.a.toFixed(2)+')');
         ctx.beginPath(); ctx.moveTo(tx,ty); ctx.lineTo(m.x,m.y);
         ctx.strokeStyle=g; ctx.lineWidth=m.width; ctx.stroke();
@@ -140,19 +212,19 @@ function draw(){
         ctx.fill();
 
         // 尾迹碎片粒子
-        if(m.life%2===0 && m.a>0.3){
+        if(m.life%3===0 && m.a>0.3){
             particles.push({
                 x: m.x - dx*2 + (Math.random()-0.5)*4,
                 y: m.y - dy*2 + (Math.random()-0.5)*4,
                 r: Math.random()*1.2+0.3,
-                a: m.a*0.7,
-                fade: 0.02+Math.random()*0.02,
+                a: m.a*0.6,
+                fade: 0.012+Math.random()*0.01,
                 hue: m.hue
             });
         }
     }
 
-    // 绘制碎片粒子
+    // ── 绘制碎片粒子 ──
     for(var i=particles.length-1;i>=0;i--){
         var p=particles[i];
         p.a -= p.fade;
@@ -161,7 +233,6 @@ function draw(){
         ctx.fillStyle='hsla('+p.hue+',50%,80%,'+p.a.toFixed(2)+')';
         ctx.fill();
     }
-    // 限制粒子数量防止性能问题
     if(particles.length > 500) particles.splice(0, particles.length-500);
 
     requestAnimationFrame(draw);
